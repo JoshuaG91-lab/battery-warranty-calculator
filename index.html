@@ -9,35 +9,41 @@
   body {
     font-family: Arial, sans-serif;
     padding: 20px;
-    max-width: 700px; /* Increased width */
+    max-width: 700px; /* Wider for desktop/tablet */
     margin: auto;
   }
 
   h2, h3, h4 { margin-top: 15px; }
+  label { display: block; margin-top: 15px; font-weight: bold; }
   input, button {
     font-size: 16px;
     padding: 10px;
     margin-top: 5px;
     margin-bottom: 15px;
     box-sizing: border-box;
+    width: 100%;
   }
 
-  input::placeholder { color: rgba(0,0,0,0.4); }
+  /* Remove number input arrows */
   input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-  input[type="number"] {
-    -moz-appearance: textfield; /* Removes arrows in Firefox */
-  }
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
 
   button { background-color: #007BFF; color: white; border: none; border-radius: 4px; cursor: pointer; }
   button:hover { background-color: #0056b3; }
 
   #policySection { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
 
-  @media print { button, input, label { display: none; } body { max-width: 100%; } }
+  /* Responsive for mobile */
+  @media (max-width: 480px) {
+    body { padding: 10px; max-width: 100%; }
+    input, button { font-size: 14px; padding: 8px; }
+  }
+
+  @media print {
+    button, input, label { display: none; }
+    body { max-width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -51,7 +57,7 @@
 <input type="text" id="replacementDate" placeholder="MM-DD-YYYY">
 
 <label>Battery Warranty Cost ($):</label>
-<input type="number" id="batteryCost" step="0.01" placeholder="Ex. 239.99">
+<input type="number" id="batteryCost" step="0.01">
 
 <button id="calculateBtn">Calculate</button>
 <button onclick="printResult()">Print</button>
@@ -78,12 +84,10 @@
 <script>
 // Trigger calculation on Enter key
 document.addEventListener("keydown", function(event) {
-  if(event.key === "Enter") {
-    calculate();
-  }
+  if(event.key === "Enter") calculate();
 });
 
-// Calculate button click
+// Button click
 document.getElementById("calculateBtn").addEventListener("click", calculate);
 
 function calculate() {
