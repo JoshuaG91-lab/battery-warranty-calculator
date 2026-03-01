@@ -13,6 +13,7 @@
     margin: auto;
   }
 
+  /* Header row with Reset button on the right */
   .header {
     display: flex;
     align-items: center;
@@ -20,7 +21,6 @@
     gap: 12px;
   }
   .header h2 { margin: 0; }
-
   .reset-btn {
     width: auto;
     padding: 8px 12px;
@@ -31,8 +31,12 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    white-space: nowrap;
   }
   .reset-btn:hover { background: #5a6268; }
+
+  h2, h3, h4 { margin-top: 15px; }
+  label { display: block; margin-top: 15px; font-weight: bold; }
 
   input, button {
     font-size: 16px;
@@ -43,6 +47,7 @@
     width: 100%;
   }
 
+  /* Remove number input arrows */
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   input[type="number"] { -moz-appearance: textfield; }
@@ -54,34 +59,41 @@
     border-radius: 4px;
     cursor: pointer;
   }
+  button:hover { background-color: #0056b3; }
 
+  #policySection { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+
+  /* Vertical cost breakdown */
   .cost-box {
     margin-top: 10px;
     padding: 12px;
     border: 1px solid #ddd;
     border-radius: 6px;
   }
-
   .cost-row {
     display: flex;
     justify-content: space-between;
+    gap: 12px;
     margin: 6px 0;
   }
 
+  /* Adds extra separation before a row */
   .cost-row.spaced {
     margin-top: 18px;
   }
 
+  .cost-label { white-space: nowrap; }
+  .cost-value { white-space: nowrap; font-variant-numeric: tabular-nums; }
   .cost-line {
     border-top: 2px solid #000;
     margin: 10px 0 8px;
   }
-
   .cost-total {
     font-weight: 700;
     font-size: 18px;
   }
 
+  /* Screen-only footer */
   .footer-note {
     margin-top: 22px;
     padding-top: 10px;
@@ -91,9 +103,18 @@
     text-align: center;
   }
 
+  @media (max-width: 480px) {
+    body { padding: 10px; max-width: 100%; }
+    input, button { font-size: 14px; padding: 8px; }
+    .reset-btn { font-size: 13px; padding: 7px 10px; }
+    .cost-total { font-size: 16px; }
+    .footer-note { font-size: 11px; }
+  }
+
   @media print {
     button, input, label { display: none; }
-    .footer-note { display: none !important; }
+    body { max-width: 100%; }
+    .footer-note { display: none !important; } /* screen-only */
   }
 </style>
 </head>
@@ -101,59 +122,82 @@
 
 <div class="header">
   <h2>Battery Warranty Calculator</h2>
-  <button class="reset-btn" onclick="resetForm()">Reset</button>
+  <button class="reset-btn" type="button" onclick="resetForm()">Reset</button>
 </div>
 
 <label>Original Purchase Date:</label>
-<input type="text" id="purchaseDate" placeholder="MM-DD-YYYY" inputmode="numeric" maxlength="10">
+<input
+  type="text"
+  id="purchaseDate"
+  placeholder="MM-DD-YYYY"
+  inputmode="numeric"
+  autocomplete="off"
+  maxlength="10"
+/>
 
 <label>Replacement Date:</label>
-<input type="text" id="replacementDate" placeholder="MM-DD-YYYY" inputmode="numeric" maxlength="10">
+<input
+  type="text"
+  id="replacementDate"
+  placeholder="MM-DD-YYYY"
+  inputmode="numeric"
+  autocomplete="off"
+  maxlength="10"
+/>
 
 <label>Battery Warranty Cost ($):</label>
-<input type="number" id="batteryCost" step="0.01" min="0" inputmode="decimal">
+<input
+  type="number"
+  id="batteryCost"
+  step="0.01"
+  min="0"
+  inputmode="decimal"
+  autocomplete="off"
+/>
 
-<button onclick="calculate()">Calculate</button>
-<button onclick="printResult()">Print</button>
+<button id="calculateBtn" type="button">Calculate</button>
+<button type="button" onclick="printResult()">Print</button>
 
 <hr>
 
-<h3 id="daysDisplay"></h3>
+<!-- This used to show "Completed Months". Now it shows rounded 30-day months (no decimals). -->
+<h3 id="months"></h3>
 <h3 id="tier"></h3>
 
 <div id="costBox" class="cost-box" style="display:none;">
   <div class="cost-row">
-    <div>Battery Cost</div>
-    <div id="batteryCostVal">$0.00</div>
+    <div class="cost-label">Battery Cost</div>
+    <div class="cost-value" id="batteryCostVal">$0.00</div>
   </div>
 
   <div class="cost-row spaced">
-    <div id="batteryDeductibleLabel">Battery Deductible</div>
-    <div id="batteryDeductibleVal">$0.00</div>
+    <div class="cost-label" id="batteryDeductibleLabel">Battery Deductible</div>
+    <div class="cost-value" id="batteryDeductibleVal">$0.00</div>
   </div>
 
   <div class="cost-row">
-    <div>Install Labor</div>
-    <div id="installLaborVal">$0.00</div>
+    <div class="cost-label">Install Labor</div>
+    <div class="cost-value" id="installLaborVal">$0.00</div>
   </div>
 
   <div class="cost-line"></div>
 
   <div class="cost-row cost-total">
-    <div>TOTAL DUE</div>
-    <div id="totalDueVal">$0.00</div>
+    <div class="cost-label">TOTAL DUE</div>
+    <div class="cost-value" id="totalDueVal">$0.00</div>
   </div>
 </div>
 
 <div id="policySection" style="display:none;">
   <h4>Battery Warranty Policy</h4>
-  <p>Proration is calculated using total days between the original purchase date and replacement date divided by 30.</p>
-  <p>Tier determination is based on (Total Days ÷ 30).</p>
+  <p>Proration is calculated using 30-day months, rounded up to the next whole month.</p>
+  <p>Installation cost is fixed at $37.50.</p>
+  <p>Proration Tiers:</p>
   <ul>
-    <li>0–24 months (0–720 days): Free Replacement</li>
-    <li>25–32 months (721–960 days): 25% of Battery Cost + Installation Labor</li>
-    <li>33–50 months (961–1500 days): 50% of Battery Cost + Installation Labor</li>
-    <li>51–84 months (1501–2520 days): 75% of Battery Cost + Installation Labor</li>
+    <li>0–24 months: Free Replacement (0%)</li>
+    <li>25–32 months: 25% of Battery Cost (Customer Pay) + Battery Installation Labor</li>
+    <li>33–50 months: 50% of Battery Cost (Customer Pay) + Battery Installation Labor</li>
+    <li>51–84 months: 75% of Battery Cost (Customer Pay) + Battery Installation Labor</li>
   </ul>
 </div>
 
@@ -164,66 +208,266 @@
 <script>
 const install = 37.50;
 
-function parseDate(text) {
-  const s = text.replace(/\D/g, "");
+/* ---------------------------
+   Reset (clears everything)
+---------------------------- */
+function resetForm() {
+  document.getElementById("purchaseDate").value = "";
+  document.getElementById("replacementDate").value = "";
+  document.getElementById("batteryCost").value = "";
+
+  document.getElementById("months").innerText = "";
+  document.getElementById("tier").innerText = "";
+
+  document.getElementById("costBox").style.display = "none";
+  document.getElementById("batteryCostVal").innerText = "$0.00";
+  document.getElementById("batteryDeductibleLabel").innerText = "Battery Deductible";
+  document.getElementById("batteryDeductibleVal").innerText = "$0.00";
+  document.getElementById("installLaborVal").innerText = "$0.00";
+  document.getElementById("totalDueVal").innerText = "$0.00";
+
+  document.getElementById("policySection").style.display = "none";
+}
+
+/* ---------------------------
+   Battery cost formatting
+---------------------------- */
+function sanitizeBatteryCost(raw) {
+  let v = String(raw ?? "").trim();
+
+  v = v.replace(/[^\d.]/g, "");
+  const firstDot = v.indexOf(".");
+  if (firstDot !== -1) {
+    v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g, "");
+  }
+
+  let [whole, frac = ""] = v.split(".");
+  whole = (whole || "").slice(0, 5);
+  frac = (frac || "").slice(0, 2);
+
+  return firstDot === -1 ? whole : `${whole}.${frac}`;
+}
+
+function formatToTwoDecimals() {
+  const el = document.getElementById("batteryCost");
+  el.value = sanitizeBatteryCost(el.value);
+
+  if (el.value === "") return;
+
+  const n = Number(el.value);
+  if (!Number.isFinite(n)) return;
+
+  el.value = n.toFixed(2);
+}
+
+document.getElementById("batteryCost").addEventListener("input", (e) => {
+  const cleaned = sanitizeBatteryCost(e.target.value);
+  if (cleaned !== e.target.value) e.target.value = cleaned;
+});
+document.getElementById("batteryCost").addEventListener("blur", formatToTwoDecimals);
+
+/* ---------------------------
+   Date input: auto-insert dashes
+---------------------------- */
+function formatDateAsYouType(el) {
+  const digits = (el.value || "").replace(/\D/g, "").slice(0, 8);
+
+  let out = "";
+  if (digits.length <= 2) out = digits;
+  else if (digits.length <= 4) out = digits.slice(0,2) + "-" + digits.slice(2);
+  else out = digits.slice(0,2) + "-" + digits.slice(2,4) + "-" + digits.slice(4);
+
+  el.value = out;
+}
+
+const purchaseEl = document.getElementById("purchaseDate");
+const replacementEl = document.getElementById("replacementDate");
+purchaseEl.addEventListener("input", () => formatDateAsYouType(purchaseEl));
+replacementEl.addEventListener("input", () => formatDateAsYouType(replacementEl));
+
+function parseMMDDYYYY_WithDashes(text) {
+  const s = String(text || "").trim().replace(/\D/g, "");
   if (s.length !== 8) return null;
-  return new Date(s.slice(4,8), s.slice(0,2)-1, s.slice(2,4));
+
+  const mm = Number(s.slice(0,2));
+  const dd = Number(s.slice(2,4));
+  const yyyy = Number(s.slice(4,8));
+  const d = new Date(yyyy, mm - 1, dd);
+
+  if (
+    d.getFullYear() !== yyyy ||
+    d.getMonth() !== (mm - 1) ||
+    d.getDate() !== dd
+  ) return null;
+
+  return d;
+}
+
+/* ---------------------------
+   NEW: Proration months based on 30-day months, rounded up (no decimals shown)
+---------------------------- */
+function calculateProrationMonths30(purchase, replacement) {
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const diffMs = replacement.getTime() - purchase.getTime();
+  if (!Number.isFinite(diffMs)) return null;
+
+  // If replacement is before purchase, treat as invalid
+  if (diffMs < 0) return null;
+
+  // Convert to whole days, then 30-day months rounded up
+  const days = Math.floor(diffMs / msPerDay);
+  const months = Math.ceil(days / 30);
+
+  return months;
+}
+
+/* ---------------------------
+   Calculate + Enter key
+---------------------------- */
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    calculate();
+  }
+});
+document.getElementById("calculateBtn").addEventListener("click", calculate);
+
+function money(n) {
+  return "$" + Number(n).toFixed(2);
 }
 
 function calculate() {
-  const purchase = parseDate(purchaseDate.value);
-  const replacement = parseDate(replacementDate.value);
-  const cost = Number(batteryCost.value);
+  formatToTwoDecimals();
 
-  if (!purchase || !replacement || !cost) return;
+  const purchase = parseMMDDYYYY_WithDashes(purchaseEl.value);
+  const replacement = parseMMDDYYYY_WithDashes(replacementEl.value);
+  const cost = Number(document.getElementById("batteryCost").value);
 
-  const msDiff = replacement - purchase;
-  const totalDays = Math.floor(msDiff / (1000 * 60 * 60 * 24));
-  const proratedMonths = totalDays / 30;
-
-  daysDisplay.innerText =
-    "Total Days: " + totalDays +
-    " | Prorated Months: " + proratedMonths.toFixed(2);
-
-  let tierPct = 0;
-
-  if (proratedMonths <= 24) tierPct = 0;
-  else if (proratedMonths <= 32) tierPct = 25;
-  else if (proratedMonths <= 50) tierPct = 50;
-  else if (proratedMonths <= 84) tierPct = 75;
-  else {
-    tier.innerText = "Out of Warranty";
+  if (!purchase || !replacement || !Number.isFinite(cost)) {
+    document.getElementById("costBox").style.display = "none";
+    document.getElementById("months").innerText = "";
+    document.getElementById("tier").innerText = "";
+    document.getElementById("policySection").style.display = "none";
     return;
   }
 
-  tier.innerText = "Coverage Tier: " + tierPct + "% Proration";
+  const proratedMonths = calculateProrationMonths30(purchase, replacement);
+  if (proratedMonths === null) {
+    document.getElementById("costBox").style.display = "none";
+    document.getElementById("months").innerText = "Please verify dates (replacement must be on/after purchase).";
+    document.getElementById("tier").innerText = "";
+    document.getElementById("policySection").style.display = "none";
+    return;
+  }
 
-  const deductible = cost * (tierPct / 100);
-  const labor = tierPct === 0 ? 0 : install;
-  const total = deductible + labor;
+  let tierText = "";
+  let tierPct = null;
+  let batteryDeductible = 0;
+  let labor = 0;
 
-  costBox.style.display = "block";
-  policySection.style.display = "block";
+  if (proratedMonths <= 24) {
+    tierText = "Free Replacement (0% Proration)";
+    tierPct = 0;
+    batteryDeductible = 0;
+    labor = 0;
+  } else if (proratedMonths <= 32) {
+    tierText = "25% of Battery Cost (Customer Pay) + Battery Installation Labor";
+    tierPct = 25;
+    batteryDeductible = cost * 0.25;
+    labor = install;
+  } else if (proratedMonths <= 50) {
+    tierText = "50% of Battery Cost (Customer Pay) + Battery Installation Labor";
+    tierPct = 50;
+    batteryDeductible = cost * 0.50;
+    labor = install;
+  } else if (proratedMonths <= 84) {
+    tierText = "75% of Battery Cost (Customer Pay) + Battery Installation Labor";
+    tierPct = 75;
+    batteryDeductible = cost * 0.75;
+    labor = install;
+  } else {
+    tierText = "Out of Warranty";
+    document.getElementById("months").innerText = "Proration Months: " + proratedMonths;
+    document.getElementById("tier").innerText = tierText;
+    document.getElementById("costBox").style.display = "none";
+    document.getElementById("policySection").style.display = "block";
+    return;
+  }
 
-  batteryCostVal.innerText = "$" + cost.toFixed(2);
-  batteryDeductibleLabel.innerText = "Battery Deductible (" + tierPct + "%)";
-  batteryDeductibleVal.innerText = "$" + deductible.toFixed(2);
-  installLaborVal.innerText = "$" + labor.toFixed(2);
-  totalDueVal.innerText = "$" + total.toFixed(2);
+  const totalDue = batteryDeductible + labor;
+
+  // Display months (rounded up). No decimals, no days mentioned.
+  document.getElementById("months").innerText = "Proration Months: " + proratedMonths;
+  document.getElementById("tier").innerText = "Coverage Tier: " + tierText;
+
+  const label = "Battery Deductible (" + tierPct + "%)";
+  document.getElementById("batteryDeductibleLabel").innerText = label;
+
+  document.getElementById("costBox").style.display = "block";
+  document.getElementById("batteryCostVal").innerText = money(cost);
+  document.getElementById("batteryDeductibleVal").innerText = money(batteryDeductible);
+  document.getElementById("installLaborVal").innerText = money(labor);
+  document.getElementById("totalDueVal").innerText = money(totalDue);
+
+  document.getElementById("policySection").style.display = "block";
 }
 
-function resetForm() {
-  purchaseDate.value = "";
-  replacementDate.value = "";
-  batteryCost.value = "";
-  daysDisplay.innerText = "";
-  tier.innerText = "";
-  costBox.style.display = "none";
-  policySection.style.display = "none";
-}
-
+/* ---------------------------
+   Print
+---------------------------- */
 function printResult() {
-  window.print();
+  formatToTwoDecimals();
+
+  const purchase = parseMMDDYYYY_WithDashes(purchaseEl.value);
+  const replacement = parseMMDDYYYY_WithDashes(replacementEl.value);
+
+  if (!purchase || !replacement) {
+    alert("Please enter valid dates before printing.");
+    return;
+  }
+
+  const purchaseDate = String(purchase.getMonth() + 1).padStart(2,'0') + '-' +
+                       String(purchase.getDate()).padStart(2,'0') + '-' +
+                       purchase.getFullYear();
+  const replacementDate = String(replacement.getMonth() + 1).padStart(2,'0') + '-' +
+                          String(replacement.getDate()).padStart(2,'0') + '-' +
+                          replacement.getFullYear();
+
+  const monthsText = document.getElementById("months").innerText;
+  const tierText = document.getElementById("tier").innerText;
+  const policy = document.getElementById("policySection").innerHTML;
+
+  const costBoxVisible = document.getElementById("costBox").style.display !== "none";
+  const batteryCostTxt = document.getElementById("batteryCostVal").innerText;
+  const batteryDeductibleLabel = document.getElementById("batteryDeductibleLabel").innerText;
+  const batteryDeductibleTxt = document.getElementById("batteryDeductibleVal").innerText;
+  const laborTxt = document.getElementById("installLaborVal").innerText;
+  const totalTxt = document.getElementById("totalDueVal").innerText;
+
+  const printWindow = window.open('', '', 'height=750,width=900');
+  printWindow.document.write('<html><head><title>Battery Warranty Printout</title>');
+  printWindow.document.write('<style>body{font-family:Arial,sans-serif} .row{display:flex;justify-content:space-between;margin:6px 0} .line{border-top:2px solid #000;margin:10px 0 8px} .total{font-weight:700;font-size:18px}</style>');
+  printWindow.document.write('</head><body>');
+  printWindow.document.write('<h2>Battery Warranty Calculation</h2>');
+  printWindow.document.write('<p>Original Purchase Date: ' + purchaseDate + '</p>');
+  printWindow.document.write('<p>Replacement Date: ' + replacementDate + '</p>');
+  if (monthsText) printWindow.document.write('<p>' + monthsText + '</p>');
+  if (tierText) printWindow.document.write('<p>' + tierText + '</p>');
+
+  if (costBoxVisible) {
+    printWindow.document.write('<div style="border:1px solid #ddd;border-radius:6px;padding:12px;max-width:520px;">');
+    printWindow.document.write('<div class="row"><div>Battery Cost</div><div>' + batteryCostTxt + '</div></div>');
+    printWindow.document.write('<div class="row" style="margin-top:18px;"><div>' + batteryDeductibleLabel + '</div><div>' + batteryDeductibleTxt + '</div></div>');
+    printWindow.document.write('<div class="row"><div>Install Labor</div><div>' + laborTxt + '</div></div>');
+    printWindow.document.write('<div class="line"></div>');
+    printWindow.document.write('<div class="row total"><div>TOTAL DUE</div><div>' + totalTxt + '</div></div>');
+    printWindow.document.write('</div>');
+  }
+
+  printWindow.document.write(policy);
+  printWindow.document.write('</body></html>');
+  printWindow.document.close();
+  printWindow.print();
 }
 </script>
 
