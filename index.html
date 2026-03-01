@@ -41,9 +41,16 @@
 
   #policySection { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
 
+  /* one-line breakdown smaller */
+  #breakdown {
+    margin-top: -8px;
+    font-size: 14px;
+  }
+
   @media (max-width: 480px) {
     body { padding: 10px; max-width: 100%; }
     input, button { font-size: 14px; padding: 8px; }
+    #breakdown { font-size: 13px; }
   }
 
   @media print {
@@ -56,11 +63,25 @@
 
 <h2>Battery Warranty Calculator</h2>
 
-<label>Original Purchase Date:</label>
-<input type="text" id="purchaseDate" placeholder="MM-DD-YYYY">
+<label>Original Purchase Date (no dash):</label>
+<input
+  type="text"
+  id="purchaseDate"
+  placeholder="MMDDYYYY"
+  inputmode="numeric"
+  autocomplete="off"
+  maxlength="8"
+/>
 
-<label>Replacement Date:</label>
-<input type="text" id="replacementDate" placeholder="MM-DD-YYYY">
+<label>Replacement Date (no dash):</label>
+<input
+  type="text"
+  id="replacementDate"
+  placeholder="MMDDYYYY"
+  inputmode="numeric"
+  autocomplete="off"
+  maxlength="8"
+/>
 
 <label>Battery Warranty Cost ($):</label>
 <input
@@ -80,6 +101,7 @@
 <h3 id="months"></h3>
 <h3 id="tier"></h3>
 <h3 id="result"></h3>
+<div id="breakdown"></div>
 
 <div id="policySection" style="display:none;">
   <h4>Battery Warranty Policy</h4>
@@ -97,8 +119,9 @@
 <script>
 const install = 37.50;
 
-// Allows up to 5 digits BEFORE the decimal, and up to 2 digits AFTER.
-// Examples allowed: 9, 99.9, 99999.99
+/* ---------------------------
+   Battery cost formatting
+---------------------------- */
 function sanitizeBatteryCost(raw) {
   let v = String(raw ?? "").trim();
 
@@ -125,40 +148,56 @@ function formatToTwoDecimals() {
   const n = Number(el.value);
   if (!Number.isFinite(n)) return;
 
-  // Always show 2 decimals (e.g., 239 -> 239.00)
   el.value = n.toFixed(2);
 }
 
-// Keep battery cost clean while typing (but don't force .00 mid-typing)
 document.getElementById("batteryCost").addEventListener("input", (e) => {
   const cleaned = sanitizeBatteryCost(e.target.value);
   if (cleaned !== e.target.value) e.target.value = cleaned;
 });
-
-// Force two decimals when leaving the field
 document.getElementById("batteryCost").addEventListener("blur", formatToTwoDecimals);
 
-// Enter triggers calculate
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    calculate();
-  }
-});
+/* ---------------------------
+   Date input: 8 digits only
+   MMDDYYYY (no dashes)
+---------------------------- */
+function digitsOnlyMax8(el) {
+  el.value = (el.value || "").replace(/\D/g, "").slice(0, 8);
+}
+const purchaseEl = document.getElementById("purchaseDate");
+const replacementEl = document.getElementById("replacementDate");
+purchaseEl.addEventListener("input", () => digitsOnlyMax8(purchaseEl));
+replacementEl.addEventListener("input", () => digitsOnlyMax8(replacementEl));
 
-document.getElementById("calculateBtn").addEventListener("click", calculate);
+function parseMMDDYYYY_NoDashes(text) {
+  const s = String(text || "").trim().replace(/\D/g, "");
+  if (s.length !== 8) return null;
 
-function parseMMDDYYYY(text) {
-  // expects MM-DD-YYYY
-  const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(String(text || "").trim());
-  if (!m) return null;
-  const mm = Number(m[1]), dd = Number(m[2]), yyyy = Number(m[3]);
+  const mm = Number(s.slice(0,2));
+  const dd = Number(s.slice(2,4));
+  const yyyy = Number(s.slice(4,8));
+
   const d = new Date(yyyy, mm - 1, dd);
-  // validate (handles invalid dates like 02-31-2024)
-  if (d.getFullYear() !== yyyy || d.getMonth() !== mm - 1 || d.getDate() !== dd) return null;
+
+  // validate real date
+  if (
+    d.getFullYear() !== yyyy ||
+    d.getMonth() !== (mm - 1) ||
+    d.getDate() !== dd
+  ) return null;
+
   return d;
 }
 
+function formatDateMMDDYYYY_WithDashes(d) {
+  return String(d.getMonth() + 1).padStart(2,'0') + '-' +
+         String(d.getDate()).padStart(2,'0') + '-' +
+         d.getFullYear();
+}
+
+/* ---------------------------
+   Months calc
+---------------------------- */
 function calculateCompletedMonths(purchase, replacement) {
   let months = (replacement.getFullYear() - purchase.getFullYear()) * 12;
   months += replacement.getMonth() - purchase.getMonth();
@@ -166,16 +205,30 @@ function calculateCompletedMonths(purchase, replacement) {
   return months;
 }
 
+/* ---------------------------
+   Calculate + Enter key
+---------------------------- */
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    calculate();
+  }
+});
+document.getElementById("calculateBtn").addEventListener("click", calculate);
+
 function calculate() {
-  // Make sure cost is formatted nicely before calculating
   formatToTwoDecimals();
 
-  const purchase = parseMMDDYYYY(document.getElementById("purchaseDate").value);
-  const replacement = parseMMDDYYYY(document.getElementById("replacementDate").value);
+  const purchase = parseMMDDYYYY_NoDashes(purchaseEl.value);
+  const replacement = parseMMDDYYYY_NoDashes(replacementEl.value);
   const cost = Number(document.getElementById("batteryCost").value);
 
+  // Clear breakdown by default
+  document.getElementById("breakdown").innerText = "";
+
   if (!purchase || !replacement || !Number.isFinite(cost)) {
-    document.getElementById("result").innerText = "Please enter valid dates (MM-DD-YYYY) and a battery cost.";
+    document.getElementById("result").innerText =
+      "Please enter valid dates as 8 digits (MMDDYYYY) and a battery cost.";
     return;
   }
 
@@ -183,24 +236,35 @@ function calculate() {
 
   let tierText = "";
   let total = 0;
+  let batteryPortion = 0;
+  let laborPortion = 0;
 
   if (months <= 24) {
     tierText = "Free Replacement (0% Proration)";
     total = 0;
+    batteryPortion = 0;
+    laborPortion = 0;
   } else if (months <= 32) {
     tierText = "25% Customer Pay + Battery Installation Labor";
-    total = (cost * 0.25) + install;
+    batteryPortion = cost * 0.25;
+    laborPortion = install;
+    total = batteryPortion + laborPortion;
   } else if (months <= 50) {
     tierText = "50% Customer Pay + Battery Installation Labor";
-    total = (cost * 0.50) + install;
+    batteryPortion = cost * 0.50;
+    laborPortion = install;
+    total = batteryPortion + laborPortion;
   } else if (months <= 84) {
     tierText = "75% Customer Pay + Battery Installation Labor";
-    total = (cost * 0.75) + install;
+    batteryPortion = cost * 0.75;
+    laborPortion = install;
+    total = batteryPortion + laborPortion;
   } else {
     tierText = "Out of Warranty";
     document.getElementById("months").innerText = "Completed Months: " + months;
     document.getElementById("tier").innerText = tierText;
     document.getElementById("result").innerText = "";
+    document.getElementById("breakdown").innerText = "";
     document.getElementById("policySection").style.display = "block";
     return;
   }
@@ -208,35 +272,36 @@ function calculate() {
   document.getElementById("months").innerText = "Completed Months: " + months;
   document.getElementById("tier").innerText = "Coverage Tier: " + tierText;
   document.getElementById("result").innerText = "Customer Pays: $" + total.toFixed(2);
+
+  // 1-line breakdown under Customer Pays
+  document.getElementById("breakdown").innerText =
+    "Breakdown: Battery $" + batteryPortion.toFixed(2) + " + Battery Installation Labor $" + laborPortion.toFixed(2);
+
   document.getElementById("policySection").style.display = "block";
 }
 
+/* ---------------------------
+   Print
+---------------------------- */
 function printResult() {
-  // Ensure cost is formatted before printing
   formatToTwoDecimals();
 
-  const purchase = parseMMDDYYYY(document.getElementById("purchaseDate").value);
-  const replacement = parseMMDDYYYY(document.getElementById("replacementDate").value);
+  const purchase = parseMMDDYYYY_NoDashes(purchaseEl.value);
+  const replacement = parseMMDDYYYY_NoDashes(replacementEl.value);
 
   if (!purchase || !replacement) {
-    alert("Please enter valid dates in MM-DD-YYYY format before printing.");
+    alert("Please enter valid dates as 8 digits (MMDDYYYY) before printing.");
     return;
   }
 
-  const purchaseDate =
-    String(purchase.getMonth() + 1).padStart(2,'0') + '-' +
-    String(purchase.getDate()).padStart(2,'0') + '-' +
-    purchase.getFullYear();
-
-  const replacementDate =
-    String(replacement.getMonth() + 1).padStart(2,'0') + '-' +
-    String(replacement.getDate()).padStart(2,'0') + '-' +
-    replacement.getFullYear();
+  const purchaseDate = formatDateMMDDYYYY_WithDashes(purchase);
+  const replacementDate = formatDateMMDDYYYY_WithDashes(replacement);
 
   const policy = document.getElementById("policySection").innerHTML;
   const months = document.getElementById("months").innerText;
   const tier = document.getElementById("tier").innerText;
   const result = document.getElementById("result").innerText;
+  const breakdown = document.getElementById("breakdown").innerText;
 
   const printWindow = window.open('', '', 'height=600,width=800');
   printWindow.document.write('<html><head><title>Battery Warranty Printout</title></head><body>');
@@ -246,6 +311,7 @@ function printResult() {
   printWindow.document.write('<p>' + months + '</p>');
   printWindow.document.write('<p>' + tier + '</p>');
   printWindow.document.write('<p>' + result + '</p>');
+  if (breakdown) printWindow.document.write('<p>' + breakdown + '</p>');
   printWindow.document.write(policy);
   printWindow.document.write('</body></html>');
   printWindow.document.close();
