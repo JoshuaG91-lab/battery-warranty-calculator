@@ -17,26 +17,19 @@
   }
   h2, h3, h4 { margin-top: 15px; }
   input, button {
-    width: 100%;
+    font-size: 16px;
     padding: 10px;
     margin-top: 5px;
     margin-bottom: 15px;
-    font-size: 16px;
     box-sizing: border-box;
   }
   input::placeholder { color: rgba(0,0,0,0.4); }
-  button {
-    background-color: #007BFF;
-    color: white;
-    border: none;
-    border-radius: 4px;
-  }
+  button { background-color: #007BFF; color: white; border: none; border-radius: 4px; cursor: pointer; }
   button:hover { background-color: #0056b3; }
-  #policySection {
-    margin-top: 20px;
-    border-top: 1px solid #ccc;
-    padding-top: 10px;
-  }
+  #policySection { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+  .date-container { display: flex; align-items: center; }
+  .date-container button { margin-left: 5px; width: 45px; }
+  .date-container input { flex: 1; }
   @media print { button, input, label { display: none; } body { max-width: 100%; } }
 </style>
 </head>
@@ -45,10 +38,16 @@
 <h2>Battery Warranty Calculator</h2>
 
 <label>Original Purchase Date:</label>
-<input type="text" id="purchaseDate" placeholder="MM-DD-YYYY">
+<div class="date-container">
+  <input type="text" id="purchaseDate" placeholder="MM-DD-YYYY">
+  <button type="button" onclick="openCalendar('purchaseDate')">📅</button>
+</div>
 
 <label>Replacement Date:</label>
-<input type="text" id="replacementDate" placeholder="MM-DD-YYYY">
+<div class="date-container">
+  <input type="text" id="replacementDate" placeholder="MM-DD-YYYY">
+  <button type="button" onclick="openCalendar('replacementDate')">📅</button>
+</div>
 
 <label>Battery Warranty Cost ($):</label>
 <input type="number" id="batteryCost">
@@ -78,21 +77,14 @@
 <!-- Flatpickr JS -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-flatpickr("#purchaseDate", {
-  dateFormat: "m-d-Y",
-  allowInput: true,
-  clickOpens: true,
-  altInput: true,
-  altFormat: "m-d-Y"
-});
+const purchasePicker = flatpickr("#purchaseDate", { dateFormat: "m-d-Y", allowInput: true });
+const replacementPicker = flatpickr("#replacementDate", { dateFormat: "m-d-Y", allowInput: true });
 
-flatpickr("#replacementDate", {
-  dateFormat: "m-d-Y",
-  allowInput: true,
-  clickOpens: true,
-  altInput: true,
-  altFormat: "m-d-Y"
-});
+// Open calendar when button clicked
+function openCalendar(fieldId) {
+  if(fieldId === 'purchaseDate') purchasePicker.open();
+  if(fieldId === 'replacementDate') replacementPicker.open();
+}
 
 function calculate() {
   const purchase = new Date(document.getElementById("purchaseDate").value);
