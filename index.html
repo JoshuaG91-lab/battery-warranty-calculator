@@ -13,6 +13,32 @@
     margin: auto;
   }
 
+  /* Header row with Reset button on the right */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .header h2 {
+    margin: 0;
+  }
+  .reset-btn {
+    width: auto;              /* override global width:100% */
+    padding: 8px 12px;
+    font-size: 14px;
+    margin: 0;                /* keep it tight in the header */
+    background: #6c757d;      /* subtle gray */
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .reset-btn:hover {
+    background: #5a6268;
+  }
+
   h2, h3, h4 { margin-top: 15px; }
   label { display: block; margin-top: 15px; font-weight: bold; }
 
@@ -53,6 +79,7 @@
     body { padding: 10px; max-width: 100%; }
     input, button { font-size: 14px; padding: 8px; }
     #breakdown { font-size: 13px; }
+    .reset-btn { font-size: 13px; padding: 7px 10px; }
   }
 
   @media print {
@@ -63,7 +90,10 @@
 </head>
 <body>
 
-<h2>Battery Warranty Calculator</h2>
+<div class="header">
+  <h2>Battery Warranty Calculator</h2>
+  <button class="reset-btn" type="button" onclick="resetForm()">Reset</button>
+</div>
 
 <label>Original Purchase Date:</label>
 <input
@@ -120,6 +150,22 @@
 
 <script>
 const install = 37.50;
+
+/* ---------------------------
+   Reset (clears everything)
+---------------------------- */
+function resetForm() {
+  document.getElementById("purchaseDate").value = "";
+  document.getElementById("replacementDate").value = "";
+  document.getElementById("batteryCost").value = "";
+
+  document.getElementById("months").innerText = "";
+  document.getElementById("tier").innerText = "";
+  document.getElementById("result").innerText = "";
+  document.getElementById("breakdown").innerText = "";
+
+  document.getElementById("policySection").style.display = "none";
+}
 
 /* ---------------------------
    Battery cost formatting
@@ -185,7 +231,6 @@ purchaseEl.addEventListener("input", () => formatDateAsYouType(purchaseEl));
 replacementEl.addEventListener("input", () => formatDateAsYouType(replacementEl));
 
 function parseMMDDYYYY_WithDashes(text) {
-  // expects MM-DD-YYYY (we also tolerate partial dashes since we strip)
   const s = String(text || "").trim().replace(/\D/g, "");
   if (s.length !== 8) return null;
 
@@ -287,7 +332,6 @@ function calculate() {
   document.getElementById("tier").innerText = "Coverage Tier: " + tierText;
   document.getElementById("result").innerText = "Customer Pays: $" + total.toFixed(2);
 
-  // RO-style single line
   document.getElementById("breakdown").innerText =
     "Battery Deductible: $" + batteryPortion.toFixed(2) +
     " | Install Labor: $" + laborPortion.toFixed(2) +
