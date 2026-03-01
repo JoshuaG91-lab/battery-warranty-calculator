@@ -20,24 +20,20 @@
     justify-content: space-between;
     gap: 12px;
   }
-  .header h2 {
-    margin: 0;
-  }
+  .header h2 { margin: 0; }
   .reset-btn {
-    width: auto;              /* override global width:100% */
+    width: auto;
     padding: 8px 12px;
     font-size: 14px;
-    margin: 0;                /* keep it tight in the header */
-    background: #6c757d;      /* subtle gray */
+    margin: 0;
+    background: #6c757d;
     color: #fff;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     white-space: nowrap;
   }
-  .reset-btn:hover {
-    background: #5a6268;
-  }
+  .reset-btn:hover { background: #5a6268; }
 
   h2, h3, h4 { margin-top: 15px; }
   label { display: block; margin-top: 15px; font-weight: bold; }
@@ -67,19 +63,35 @@
 
   #policySection { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
 
-  /* RO-like breakdown styling */
-  #breakdown {
-    margin-top: -8px;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow-x: auto;
+  /* New vertical cost breakdown */
+  .cost-box {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+  }
+  .cost-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 6px 0;
+  }
+  .cost-label { white-space: nowrap; }
+  .cost-value { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cost-line {
+    border-top: 2px solid #000;
+    margin: 10px 0 8px;
+  }
+  .cost-total {
+    font-weight: 700;
+    font-size: 18px;
   }
 
   @media (max-width: 480px) {
     body { padding: 10px; max-width: 100%; }
     input, button { font-size: 14px; padding: 8px; }
-    #breakdown { font-size: 13px; }
     .reset-btn { font-size: 13px; padding: 7px 10px; }
+    .cost-total { font-size: 16px; }
   }
 
   @media print {
@@ -132,8 +144,23 @@
 
 <h3 id="months"></h3>
 <h3 id="tier"></h3>
-<h3 id="result"></h3>
-<div id="breakdown"></div>
+
+<!-- New breakdown container -->
+<div id="costBox" class="cost-box" style="display:none;">
+  <div class="cost-row">
+    <div class="cost-label">Battery Deductible</div>
+    <div class="cost-value" id="batteryDeductibleVal">$0.00</div>
+  </div>
+  <div class="cost-row">
+    <div class="cost-label">Install Labor</div>
+    <div class="cost-value" id="installLaborVal">$0.00</div>
+  </div>
+  <div class="cost-line"></div>
+  <div class="cost-row cost-total">
+    <div class="cost-label">TOTAL DUE</div>
+    <div class="cost-value" id="totalDueVal">$0.00</div>
+  </div>
+</div>
 
 <div id="policySection" style="display:none;">
   <h4>Battery Warranty Policy</h4>
@@ -161,8 +188,11 @@ function resetForm() {
 
   document.getElementById("months").innerText = "";
   document.getElementById("tier").innerText = "";
-  document.getElementById("result").innerText = "";
-  document.getElementById("breakdown").innerText = "";
+
+  document.getElementById("costBox").style.display = "none";
+  document.getElementById("batteryDeductibleVal").innerText = "$0.00";
+  document.getElementById("installLaborVal").innerText = "$0.00";
+  document.getElementById("totalDueVal").innerText = "$0.00";
 
   document.getElementById("policySection").style.display = "none";
 }
@@ -207,26 +237,20 @@ document.getElementById("batteryCost").addEventListener("blur", formatToTwoDecim
 
 /* ---------------------------
    Date input: auto-insert dashes
-   User types digits; display becomes MM-DD-YYYY
 ---------------------------- */
 function formatDateAsYouType(el) {
   const digits = (el.value || "").replace(/\D/g, "").slice(0, 8);
 
   let out = "";
-  if (digits.length <= 2) {
-    out = digits;
-  } else if (digits.length <= 4) {
-    out = digits.slice(0,2) + "-" + digits.slice(2);
-  } else {
-    out = digits.slice(0,2) + "-" + digits.slice(2,4) + "-" + digits.slice(4);
-  }
+  if (digits.length <= 2) out = digits;
+  else if (digits.length <= 4) out = digits.slice(0,2) + "-" + digits.slice(2);
+  else out = digits.slice(0,2) + "-" + digits.slice(2,4) + "-" + digits.slice(4);
 
   el.value = out;
 }
 
 const purchaseEl = document.getElementById("purchaseDate");
 const replacementEl = document.getElementById("replacementDate");
-
 purchaseEl.addEventListener("input", () => formatDateAsYouType(purchaseEl));
 replacementEl.addEventListener("input", () => formatDateAsYouType(replacementEl));
 
@@ -237,7 +261,6 @@ function parseMMDDYYYY_WithDashes(text) {
   const mm = Number(s.slice(0,2));
   const dd = Number(s.slice(2,4));
   const yyyy = Number(s.slice(4,8));
-
   const d = new Date(yyyy, mm - 1, dd);
 
   if (
@@ -276,6 +299,10 @@ document.addEventListener("keydown", (event) => {
 });
 document.getElementById("calculateBtn").addEventListener("click", calculate);
 
+function money(n) {
+  return "$" + Number(n).toFixed(2);
+}
+
 function calculate() {
   formatToTwoDecimals();
 
@@ -283,59 +310,56 @@ function calculate() {
   const replacement = parseMMDDYYYY_WithDashes(replacementEl.value);
   const cost = Number(document.getElementById("batteryCost").value);
 
-  document.getElementById("breakdown").innerText = "";
-
   if (!purchase || !replacement || !Number.isFinite(cost)) {
-    document.getElementById("result").innerText =
-      "Please enter valid dates and a battery cost.";
+    // hide breakdown if invalid
+    document.getElementById("costBox").style.display = "none";
+    document.getElementById("months").innerText = "";
+    document.getElementById("tier").innerText = "";
+    document.getElementById("policySection").style.display = "none";
     return;
   }
 
   const months = calculateCompletedMonths(purchase, replacement);
 
   let tierText = "";
-  let total = 0;
-  let batteryPortion = 0;
-  let laborPortion = 0;
+  let batteryDeductible = 0;
+  let labor = 0;
 
   if (months <= 24) {
     tierText = "Free Replacement (0% Proration)";
-    total = 0;
-    batteryPortion = 0;
-    laborPortion = 0;
+    batteryDeductible = 0;
+    labor = 0;
   } else if (months <= 32) {
     tierText = "25% Customer Pay + Battery Installation Labor";
-    batteryPortion = cost * 0.25;
-    laborPortion = install;
-    total = batteryPortion + laborPortion;
+    batteryDeductible = cost * 0.25;
+    labor = install;
   } else if (months <= 50) {
     tierText = "50% Customer Pay + Battery Installation Labor";
-    batteryPortion = cost * 0.50;
-    laborPortion = install;
-    total = batteryPortion + laborPortion;
+    batteryDeductible = cost * 0.50;
+    labor = install;
   } else if (months <= 84) {
     tierText = "75% Customer Pay + Battery Installation Labor";
-    batteryPortion = cost * 0.75;
-    laborPortion = install;
-    total = batteryPortion + laborPortion;
+    batteryDeductible = cost * 0.75;
+    labor = install;
   } else {
     tierText = "Out of Warranty";
     document.getElementById("months").innerText = "Completed Months: " + months;
     document.getElementById("tier").innerText = tierText;
-    document.getElementById("result").innerText = "";
-    document.getElementById("breakdown").innerText = "";
+    document.getElementById("costBox").style.display = "none";
     document.getElementById("policySection").style.display = "block";
     return;
   }
 
+  const totalDue = batteryDeductible + labor;
+
   document.getElementById("months").innerText = "Completed Months: " + months;
   document.getElementById("tier").innerText = "Coverage Tier: " + tierText;
-  document.getElementById("result").innerText = "Customer Pays: $" + total.toFixed(2);
 
-  document.getElementById("breakdown").innerText =
-    "Battery Deductible: $" + batteryPortion.toFixed(2) +
-    " | Install Labor: $" + laborPortion.toFixed(2) +
-    " | Total Due: $" + total.toFixed(2);
+  // show and populate vertical breakdown
+  document.getElementById("costBox").style.display = "block";
+  document.getElementById("batteryDeductibleVal").innerText = money(batteryDeductible);
+  document.getElementById("installLaborVal").innerText = money(labor);
+  document.getElementById("totalDueVal").innerText = money(totalDue);
 
   document.getElementById("policySection").style.display = "block";
 }
@@ -357,21 +381,35 @@ function printResult() {
   const purchaseDate = formatDateMMDDYYYY(purchase);
   const replacementDate = formatDateMMDDYYYY(replacement);
 
-  const policy = document.getElementById("policySection").innerHTML;
   const months = document.getElementById("months").innerText;
   const tier = document.getElementById("tier").innerText;
-  const result = document.getElementById("result").innerText;
-  const breakdown = document.getElementById("breakdown").innerText;
+  const policy = document.getElementById("policySection").innerHTML;
 
-  const printWindow = window.open('', '', 'height=600,width=800');
-  printWindow.document.write('<html><head><title>Battery Warranty Printout</title></head><body>');
+  // If costBox is hidden (e.g., out of warranty), print without it
+  const costBoxVisible = document.getElementById("costBox").style.display !== "none";
+  const batteryDeductible = document.getElementById("batteryDeductibleVal").innerText;
+  const labor = document.getElementById("installLaborVal").innerText;
+  const total = document.getElementById("totalDueVal").innerText;
+
+  const printWindow = window.open('', '', 'height=700,width=900');
+  printWindow.document.write('<html><head><title>Battery Warranty Printout</title>');
+  printWindow.document.write('<style>body{font-family:Arial,sans-serif} .row{display:flex;justify-content:space-between;margin:6px 0} .line{border-top:2px solid #000;margin:10px 0 8px} .total{font-weight:700;font-size:18px}</style>');
+  printWindow.document.write('</head><body>');
   printWindow.document.write('<h2>Battery Warranty Calculation</h2>');
   printWindow.document.write('<p>Original Purchase Date: ' + purchaseDate + '</p>');
   printWindow.document.write('<p>Replacement Date: ' + replacementDate + '</p>');
-  printWindow.document.write('<p>' + months + '</p>');
-  printWindow.document.write('<p>' + tier + '</p>');
-  printWindow.document.write('<p>' + result + '</p>');
-  if (breakdown) printWindow.document.write('<p>' + breakdown + '</p>');
+  if (months) printWindow.document.write('<p>' + months + '</p>');
+  if (tier) printWindow.document.write('<p>' + tier + '</p>');
+
+  if (costBoxVisible) {
+    printWindow.document.write('<div style="border:1px solid #ddd;border-radius:6px;padding:12px;max-width:520px;">');
+    printWindow.document.write('<div class="row"><div>Battery Deductible</div><div>' + batteryDeductible + '</div></div>');
+    printWindow.document.write('<div class="row"><div>Install Labor</div><div>' + labor + '</div></div>');
+    printWindow.document.write('<div class="line"></div>');
+    printWindow.document.write('<div class="row total"><div>TOTAL DUE</div><div>' + total + '</div></div>');
+    printWindow.document.write('</div>');
+  }
+
   printWindow.document.write(policy);
   printWindow.document.write('</body></html>');
   printWindow.document.close();
