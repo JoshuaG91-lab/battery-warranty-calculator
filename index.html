@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Battery Warranty Calculator</title>
+
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 15px;
+    max-width: 480px;
+    margin: auto;
+  }
+  h2, h3, h4 { margin-top: 15px; }
+  input, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+  input::placeholder { color: rgba(0,0,0,0.4); }
+  button {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+  }
+  button:hover { background-color: #0056b3; }
+  #policySection {
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+    padding-top: 10px;
+  }
+  @media print { button, input, label { display: none; } body { max-width: 100%; } }
+</style>
+</head>
+<body>
+
+<h2>Battery Warranty Calculator</h2>
+
+<label>Original Purchase Date:</label>
+<input type="text" id="purchaseDate" placeholder="MM-DD-YYYY">
+
+<label>Replacement Date:</label>
+<input type="text" id="replacementDate" placeholder="MM-DD-YYYY">
+
+<label>Battery Warranty Cost ($):</label>
+<input type="number" id="batteryCost">
+
+<button onclick="calculate()">Calculate</button>
+<button onclick="printResult()">Print</button>
+
+<hr>
+
+<h3 id="months"></h3>
+<h3 id="tier"></h3>
+<h3 id="result"></h3>
+
+<div id="policySection" style="display:none;">
+  <h4>Battery Warranty Policy</h4>
+  <p>This calculator uses completed calendar months from the original purchase date to determine proration.</p>
+  <p>Installation cost is fixed at $37.50.</p>
+  <p>Proration Tiers:</p>
+  <ul>
+    <li>0–24 months: Free Replacement (0%)</li>
+    <li>25–32 months: 25% Customer Pays + Installation</li>
+    <li>33–50 months: 50% Customer Pays + Installation</li>
+    <li>51–84 months: 75% Customer Pays + Installation</li>
+  </ul>
+</div>
+
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+flatpickr("#purchaseDate", {
+  dateFormat: "m-d-Y",
+  allowInput: true,
+  clickOpens: true,
+  altInput: true,
+  altFormat: "m-d-Y"
+});
+
+flatpickr("#replacementDate", {
+  dateFormat: "m-d-Y",
+  allowInput: true,
+  clickOpens: true,
+  altInput: true,
+  altFormat: "m-d-Y"
+});
+
+function calculate() {
+  const purchase = new Date(document.getElementById("purchaseDate").value);
+  const replacement = new Date(document.getElementById("replacementDate").value);
+  const cost = parseFloat(document.getElementById("batteryCost").value);
+  const install = 37.50;
+
+  if (!purchase || !replacement || !cost) {
+    document.getElementById("result").innerText = "Please enter all fields.";
+    return;
+  }
+
+  let months = (replacement.getFullYear() - purchase.getFullYear()) * 12;
+  months += replacement.getMonth() - purchase.getMonth();
+  if (replacement.getDate() < purchase.getDate()) months--;
+
+  let tierText = "";
+  let total = 0;
+
+  if (months <= 24) { tierText = "Free Replacement (0% Proration)"; total = 0; }
+  else if (months <= 32) { tierText = "25% Proration"; total = (cost * 0.25) + install; }
+  else if (months <= 50) { tierText = "50% Proration"; total = (cost * 0.50) + install; }
+  else if (months <= 84) { tierText = "75% Proration"; total = (cost * 0.75) + install; }
+  else { tierText = "Out of Warranty"; document.getElementById("months").innerText = "Completed Months: " + months; document.getElementById("tier").innerText = tierText; document.getElementById("result").innerText = ""; document.getElementById("policySection").style.display = "block"; return; }
+
+  document.getElementById("months").innerText = "Completed Months: " + months;
+  document.getElementById("tier").innerText = "Coverage Tier: " + tierText;
+  document.getElementById("result").innerText = "Customer Pays: $" + total.toFixed(2);
+  document.getElementById("policySection").style.display = "block";
+}
+
+function printResult() {
+  const purchaseDateRaw = new Date(document.getElementById("purchaseDate").value);
+  const replacementDateRaw = new Date(document.getElementById("replacementDate").value);
+
+  const purchaseDate = (purchaseDateRaw.getMonth() + 1).toString().padStart(2,'0') + '-' +
+                       purchaseDateRaw.getDate().toString().padStart(2,'0') + '-' +
+                       purchaseDateRaw.getFullYear();
+
+  const replacementDate = (replacementDateRaw.getMonth() + 1).toString().padStart(2,'0') + '-' +
+                          replacementDateRaw.getDate().toString().padStart(2,'0') + '-' +
+                          replacementDateRaw.getFullYear();
+
+  const policy = document.getElementById("policySection").innerHTML;
+  const months = document.getElementById("months").innerText;
+  const tier = document.getElementById("tier").innerText;
+  const result = document.getElementById("result").innerText;
+
+  const printWindow = window.open('', '', 'height=600,width=800');
+  printWindow.document.write('<html><head><title>Battery Warranty Printout</title></head><body>');
+  printWindow.document.write('<h2>Battery Warranty Calculation</h2>');
+  printWindow.document.write('<p>Original Purchase Date: ' + purchaseDate + '</p>');
+  printWindow.document.write('<p>Replacement Date: ' + replacementDate + '</p>');
+  printWindow.document.write('<p>' + months + '</p>');
+  printWindow.document.write('<p>' + tier + '</p>');
+  printWindow.document.write('<p>' + result + '</p>');
+  printWindow.document.write(policy);
+  printWindow.document.write('</body></html>');
+  printWindow.document.close();
+  printWindow.print();
+}
+</script>
+
+</body>
+</html>
