@@ -76,6 +76,12 @@
     gap: 12px;
     margin: 6px 0;
   }
+
+  /* NEW: Adds extra separation before a row */
+  .cost-row.spaced {
+    margin-top: 18px; /* adjust to 14/16/20 if you prefer */
+  }
+
   .cost-label { white-space: nowrap; }
   .cost-value { white-space: nowrap; font-variant-numeric: tabular-nums; }
   .cost-line {
@@ -151,10 +157,13 @@
     <div class="cost-label">Battery Cost</div>
     <div class="cost-value" id="batteryCostVal">$0.00</div>
   </div>
-  <div class="cost-row">
+
+  <!-- UPDATED: spaced row -->
+  <div class="cost-row spaced">
     <div class="cost-label" id="batteryDeductibleLabel">Battery Deductible</div>
     <div class="cost-value" id="batteryDeductibleVal">$0.00</div>
   </div>
+
   <div class="cost-row">
     <div class="cost-label">Install Labor</div>
     <div class="cost-value" id="installLaborVal">$0.00</div>
@@ -277,12 +286,6 @@ function parseMMDDYYYY_WithDashes(text) {
   return d;
 }
 
-function formatDateMMDDYYYY(d) {
-  return String(d.getMonth() + 1).padStart(2,'0') + '-' +
-         String(d.getDate()).padStart(2,'0') + '-' +
-         d.getFullYear();
-}
-
 /* ---------------------------
    Months calc
 ---------------------------- */
@@ -326,7 +329,7 @@ function calculate() {
   const months = calculateCompletedMonths(purchase, replacement);
 
   let tierText = "";
-  let tierPct = null; // null for free/out of warranty
+  let tierPct = null;
   let batteryDeductible = 0;
   let labor = 0;
 
@@ -364,13 +367,9 @@ function calculate() {
   document.getElementById("months").innerText = "Completed Months: " + months;
   document.getElementById("tier").innerText = "Coverage Tier: " + tierText;
 
-  // Update label to include tier percentage
-  const label = (tierPct === 0)
-    ? "Battery Deductible (0%)"
-    : "Battery Deductible (" + tierPct + "%)";
+  const label = "Battery Deductible (" + tierPct + "%)";
   document.getElementById("batteryDeductibleLabel").innerText = label;
 
-  // show and populate breakdown
   document.getElementById("costBox").style.display = "block";
   document.getElementById("batteryCostVal").innerText = money(cost);
   document.getElementById("batteryDeductibleVal").innerText = money(batteryDeductible);
@@ -394,8 +393,12 @@ function printResult() {
     return;
   }
 
-  const purchaseDate = formatDateMMDDYYYY(purchase);
-  const replacementDate = formatDateMMDDYYYY(replacement);
+  const purchaseDate = String(purchase.getMonth() + 1).padStart(2,'0') + '-' +
+                       String(purchase.getDate()).padStart(2,'0') + '-' +
+                       purchase.getFullYear();
+  const replacementDate = String(replacement.getMonth() + 1).padStart(2,'0') + '-' +
+                          String(replacement.getDate()).padStart(2,'0') + '-' +
+                          replacement.getFullYear();
 
   const months = document.getElementById("months").innerText;
   const tier = document.getElementById("tier").innerText;
@@ -421,7 +424,7 @@ function printResult() {
   if (costBoxVisible) {
     printWindow.document.write('<div style="border:1px solid #ddd;border-radius:6px;padding:12px;max-width:520px;">');
     printWindow.document.write('<div class="row"><div>Battery Cost</div><div>' + batteryCostTxt + '</div></div>');
-    printWindow.document.write('<div class="row"><div>' + batteryDeductibleLabel + '</div><div>' + batteryDeductibleTxt + '</div></div>');
+    printWindow.document.write('<div class="row" style="margin-top:18px;"><div>' + batteryDeductibleLabel + '</div><div>' + batteryDeductibleTxt + '</div></div>');
     printWindow.document.write('<div class="row"><div>Install Labor</div><div>' + laborTxt + '</div></div>');
     printWindow.document.write('<div class="line"></div>');
     printWindow.document.write('<div class="row total"><div>TOTAL DUE</div><div>' + totalTxt + '</div></div>');
