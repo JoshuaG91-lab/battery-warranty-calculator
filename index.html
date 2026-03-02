@@ -6,11 +6,17 @@
 <title>Battery Warranty Calculator</title>
 
 <style>
+  html{
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body{
     font-family: Arial, sans-serif;
     padding: 20px;
     max-width: 700px;
     margin: auto;
+    overflow-x: hidden; /* prevent any tiny horizontal overflow from causing width shifts */
   }
 
   .header{
@@ -28,6 +34,7 @@
     margin-bottom:15px;
     box-sizing:border-box;
     width:100%;
+    max-width: 100%;
   }
   label{
     display:block;
@@ -65,12 +72,18 @@
     border:1px solid #ddd;
     border-radius:6px;
   }
+
   .cost-row{
     display:flex;
     justify-content:space-between;
     gap:12px;
     margin:6px 0;
+    flex-wrap: wrap;          /* prevents overflow causing page width shift */
   }
+  .cost-row > div{
+    min-width: 0;             /* lets content wrap instead of forcing overflow */
+  }
+
   .cost-row.spaced{ margin-top:18px; }
   .cost-value{ font-variant-numeric: tabular-nums; white-space:nowrap; }
   .cost-line{
@@ -82,9 +95,15 @@
     font-size:18px;
   }
 
+  /* Prevent long result strings from widening layout */
+  h3{
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   /* Policy box shown on home page */
   #policySection{
-    margin-top: 10px;
+    margin-top: 6px;
     padding: 12px;
     border: 1px solid #e5e5e5;
     border-radius: 8px;
@@ -104,19 +123,44 @@
     text-align:center;
   }
 
+  /* Back to Top (floating gray button) */
+  .back-to-top{
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    width: auto;
+    padding: 10px 12px;
+    font-size: 14px;
+    border-radius: 999px;
+    background: #6c757d;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: none;
+    z-index: 9999;
+  }
+  .back-to-top:hover{ background:#5a6268; }
+
   @media (max-width:480px){
     body{ padding:10px; max-width:100%; }
-    input, button{ font-size:14px; padding:8px; }
+
+    /* KEY FIX: keep input font-size >= 16px to prevent iOS zoom/layout shift */
+    input{ font-size:16px; padding:8px; }
+    button{ font-size:14px; padding:8px; }
+
     .reset-btn{ font-size:13px; padding:7px 10px; }
     .cost-total{ font-size:16px; }
     .footer-note{ font-size:11px; }
     #policySection{ padding: 10px; }
+    .back-to-top{ font-size: 13px; padding: 9px 11px; }
   }
 
   @media print{
     button, input, label{ display:none; }
     body{ max-width:100%; }
-    .footer-note{ display:none !important; } /* screen-only */
+    .footer-note{ display:none !important; }
+    .back-to-top{ display:none !important; }
   }
 </style>
 </head>
@@ -139,9 +183,25 @@
   <button id="calculateBtn" type="button">Calculate</button>
   <button type="button" id="printBtn">Print</button>
 
+  <!-- Policy now visible on home page -->
+  <div id="policySection">
+    <h4>Battery Warranty Policy</h4>
+    <p>Proration is calculated by total days from original battery purchase divided by 30 days.</p>
+    <p>Installation cost is fixed at $37.50.</p>
+    <p><strong>Proration Tiers:</strong></p>
+    <ul>
+      <li>0–24 months: Free Replacement (0%)</li>
+      <li>25–32 months: 25% of Battery Cost (Customer Pay) + Battery Installation Labor</li>
+      <li>33–50 months: 50% of Battery Cost (Customer Pay) + Battery Installation Labor</li>
+      <li>51–84 months: 75% of Battery Cost (Customer Pay) + Battery Installation Labor</li>
+    </ul>
+  </div>
+
   <hr>
 
-  <!-- RESULTS MOVED ABOVE POLICY -->
+  <!-- Anchor used for auto-scroll -->
+  <div id="resultsAnchor"></div>
+
   <h3 id="months"></h3>
   <h3 id="tier"></h3>
 
@@ -169,23 +229,11 @@
     </div>
   </div>
 
-  <!-- POLICY NOW BELOW RESULTS -->
-  <div id="policySection">
-    <h4>Battery Warranty Policy</h4>
-    <p>Proration is calculated by total days from original battery purchase divided by 30 days.</p>
-    <p>Installation cost is fixed at $37.50.</p>
-    <p><strong>Proration Tiers:</strong></p>
-    <ul>
-      <li>0–24 months: Free Replacement (0%)</li>
-      <li>25–32 months: 25% of Battery Cost (Customer Pay) + Battery Installation Labor</li>
-      <li>33–50 months: 50% of Battery Cost (Customer Pay) + Battery Installation Labor</li>
-      <li>51–84 months: 75% of Battery Cost (Customer Pay) + Battery Installation Labor</li>
-    </ul>
-  </div>
-
   <div class="footer-note">
     Created and developed by a service advisor, for service advisors. — Joshua Garcia
   </div>
+
+  <button type="button" id="backToTopBtn" class="back-to-top">Back to Top</button>
 
 <script>
 (() => {
@@ -207,6 +255,9 @@
   const batteryDeductibleValEl = $("batteryDeductibleVal");
   const installLaborValEl = $("installLaborVal");
   const totalDueValEl = $("totalDueVal");
+
+  const resultsAnchorEl = $("resultsAnchor");
+  const backToTopBtn = $("backToTopBtn");
 
   function money(n){ return "$" + Number(n).toFixed(2); }
 
@@ -264,6 +315,12 @@
     return Math.ceil(days / 30);
   }
 
+  function scrollToResults(){
+    requestAnimationFrame(() => {
+      resultsAnchorEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   function resetForm(){
     purchaseEl.value = "";
     replacementEl.value = "";
@@ -271,6 +328,7 @@
 
     monthsEl.innerText = "";
     tierEl.innerText = "";
+
     costBoxEl.style.display = "none";
 
     batteryCostValEl.innerText = "$0.00";
@@ -302,6 +360,7 @@
       costBoxEl.style.display = "none";
       monthsEl.innerText = "Please verify dates (replacement must be on/after purchase).";
       tierEl.innerText = "";
+      scrollToResults();
       return;
     }
 
@@ -326,6 +385,7 @@
       monthsEl.innerText = "Proration Months: " + proratedMonths;
       tierEl.innerText = "Out of Warranty";
       costBoxEl.style.display = "none";
+      scrollToResults();
       return;
     }
 
@@ -342,6 +402,7 @@
     totalDueValEl.innerText = money(totalDue);
 
     costBoxEl.style.display = "block";
+    scrollToResults();
   }
 
   function printResult(){
@@ -375,7 +436,7 @@
       w.document.write('<div style="border:1px solid #ddd;border-radius:6px;padding:12px;max-width:520px;">');
       w.document.write('<div class="row"><div>Battery Cost</div><div>' + batteryCostValEl.innerText + '</div></div>');
       w.document.write('<div class="row" style="margin-top:18px;"><div>' + batteryDeductibleLabelEl.innerText + '</div><div>' + batteryDeductibleValEl.innerText + '</div></div>');
-      w.document.write('<div class="row"><div>Installation Labor</div><div>' + installLaborValEl.innerText + '</div></div>');
+      w.document.write('<div class="row"><div>Install Labor</div><div>' + installLaborValEl.innerText + '</div></div>');
       w.document.write('<div class="line"></div>');
       w.document.write('<div class="row total"><div>TOTAL DUE</div><div>' + totalDueValEl.innerText + '</div></div>');
       w.document.write("</div>");
@@ -387,6 +448,13 @@
     w.print();
   }
 
+  // Back to Top button behavior
+  function updateBackToTopVisibility(){
+    backToTopBtn.style.display = (window.scrollY > 250) ? "block" : "none";
+  }
+  window.addEventListener("scroll", updateBackToTopVisibility, { passive: true });
+  backToTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
   $("resetBtn").addEventListener("click", resetForm);
   $("calculateBtn").addEventListener("click", calculate);
   $("printBtn").addEventListener("click", printResult);
@@ -397,6 +465,8 @@
       calculate();
     }
   });
+
+  updateBackToTopVisibility();
 })();
 </script>
 </body>
