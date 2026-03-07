@@ -390,12 +390,13 @@
     }
 
     let tierPct, labor;
+
     if (proratedMonths <= 18) {
       tierPct = 0;
-      labor = includeLabor ? INSTALL : 0;
+      labor = 0;
     } else if (proratedMonths <= 24) {
       tierPct = 0;
-      labor = includeLabor ? INSTALL : 0;
+      labor = 0;
     } else if (proratedMonths <= 32) {
       tierPct = 25;
       labor = includeLabor ? INSTALL : 0;
@@ -424,7 +425,7 @@
     batteryCostValEl.innerText = money(cost);
     batteryDeductibleValEl.innerText = money(deductible);
 
-    if (includeLabor) {
+    if (labor > 0) {
       laborRowEl.style.display = "flex";
       installLaborValEl.innerText = money(labor);
     } else {
@@ -446,8 +447,6 @@
       return;
     }
 
-    const includeLabor = includeLaborEl.checked;
-
     const pad2 = (n) => String(n).padStart(2, "0");
     const purchaseDate = pad2(purchase.getMonth() + 1) + "-" + pad2(purchase.getDate()) + "-" + purchase.getFullYear();
     const replacementDate = pad2(replacement.getMonth() + 1) + "-" + pad2(replacement.getDate()) + "-" + replacement.getFullYear();
@@ -456,6 +455,7 @@
     const tierText = tierEl.innerText;
     const costBoxVisible = costBoxEl.style.display !== "none";
     const policyHTML = $("policySection").innerHTML;
+    const showLaborInPrint = laborRowEl.style.display !== "none";
 
     const w = window.open("", "", "height=750,width=900");
     w.document.write("<html><head><title>Battery Proration Printout</title>");
@@ -472,7 +472,7 @@
       w.document.write('<div class="row"><div>Battery Cost</div><div>' + batteryCostValEl.innerText + '</div></div>');
       w.document.write('<div class="row" style="margin-top:18px;"><div>' + batteryDeductibleLabelEl.innerText + '</div><div>' + batteryDeductibleValEl.innerText + '</div></div>');
 
-      if (includeLabor) {
+      if (showLaborInPrint) {
         w.document.write('<div class="row"><div>Installation Labor</div><div>' + installLaborValEl.innerText + '</div></div>');
       }
 
